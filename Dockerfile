@@ -4,9 +4,9 @@ ENV NODE_ENV=production
 ARG NPM_BUILD="npm install --omit=dev"
 EXPOSE 8080/tcp
 
-LABEL maintainer="Venomus V1.0"
+LABEL maintainer="Venomous V1.0"
 LABEL summary="Uses Ultraviolet."
-LABEL description="Version one of the venomus proxy."
+LABEL description="Version one of the Venomous proxy."
 
 WORKDIR /app
 
