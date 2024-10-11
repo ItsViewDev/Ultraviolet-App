@@ -14,10 +14,10 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// Easily changeable password variable
+// Password
 const password = "1234";
 
-// Render a simple password page (this can be an actual HTML file if you prefer)
+// Render password page
 app.get("/password", (req, res) => {
   res.send(`
     <html>
