@@ -1,76 +1,74 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Password Protected Site</title>
-  <style>
-    /* Style for the overlay */
-    #passwordOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.8);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
+import { createBareServer } from "@tomphttp/bare-server-node";
+import express from "express";
+import { createServer } from "node:http";
+import { publicPath } from "ultraviolet-static";
+import { uvPath } from "@titaniumnetwork-dev/ultraviolet";
+import { join } from "node:path";
+import { hostname } from "node:os";
 
-    /* Hidden content before password is entered */
-    #mainContent {
-      display: none;
-    }
+const bare = createBareServer("/bare/");
+const app = express();
 
-    /* Simple input style */
-    input {
-      padding: 10px;
-      font-size: 16px;
-    }
+// Load our publicPath first and prioritize it over UV.
+app.use(express.static(publicPath));
+// Load vendor files last.
+// The vendor's uv.config.js won't conflict with our uv.config.js inside the publicPath directory.
+app.use("/uv/", express.static(uvPath));
 
-    button {
-      padding: 10px;
-      font-size: 16px;
-      margin-left: 10px;
-    }
-  </style>
-</head>
-<body>
-  <!-- The password overlay -->
-  <div id="passwordOverlay">
-    <div>
-      <h2>Enter Password</h2>
-      <input type="password" id="passwordInput" placeholder="Enter password" />
-      <button onclick="checkPassword()">Submit</button>
-      <p id="errorMessage" style="color: red;"></p>
-    </div>
-  </div>
+// Error for everything else
+app.use((req, res) => {
+  res.status(404);
+  res.sendFile(join(publicPath, "404.html"));
+});
 
-  <!-- Hidden content that appears after correct password -->
-  <div id="mainContent">
-    <h1>Welcome to the site!</h1>
-    <p>This content is hidden until the correct password is entered.</p>
-    <!-- Add the rest of your site content here -->
-  </div>
+const server = createServer();
 
-  <script>
-    const correctPassword = '1234'; // The password variable (changeable)
+server.on("request", (req, res) => {
+  if (bare.shouldRoute(req)) {
+    bare.routeRequest(req, res);
+  } else {
+    app(req, res);
+  }
+});
 
-    function checkPassword() {
-      const input = document.getElementById('passwordInput').value;
-      const errorMessage = document.getElementById('errorMessage');
+server.on("upgrade", (req, socket, head) => {
+  if (bare.shouldRoute(req)) {
+    bare.routeUpgrade(req, socket, head);
+  } else {
+    socket.end();
+  }
+});
 
-      if (input === correctPassword) {
-        // Hide the password overlay and show the main content
-        document.getElementById('passwordOverlay').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'block';
-      } else {
-        errorMessage.textContent = 'Incorrect password.';
-      }
-    }
-  </script>
-</body>
-</html>
+let port = parseInt(process.env.PORT || "");
+
+if (isNaN(port)) port = 8080;
+
+server.on("listening", () => {
+  const address = server.address();
+
+  // by default we are listening on 0.0.0.0 (every interface)
+  // we just need to list a few
+  console.log("Listening on:");
+  console.log(\thttp://localhost:${address.port});
+  console.log(\thttp://${hostname()}:${address.port});
+  console.log(
+    \thttp://${
+      address.family === "IPv6" ? [${address.address}] : address.address
+    }:${address.port}
+  );
+});
+
+// https://expressjs.com/en/advanced/healthcheck-graceful-shutdown.html
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
+
+function shutdown() {
+  console.log("SIGTERM signal received: closing HTTP server");
+  server.close();
+  bare.close();
+  process.exit(0);
+}
+
+server.listen({
+  port,
+});
