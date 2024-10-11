@@ -5,9 +5,63 @@ import { publicPath } from "ultraviolet-static";
 import { uvPath } from "@titaniumnetwork-dev/ultraviolet";
 import { join } from "node:path";
 import { hostname } from "node:os";
+import bodyParser from "body-parser";
 
 const bare = createBareServer("/bare/");
 const app = express();
+
+// Middleware to parse URL-encoded bodies (for form submissions)
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Set a simple password
+const PASSWORD = "1234";
+
+// Serve the password input form
+app.get("/", (req, res) => {
+  if (req.query.unlocked) {
+    res.sendFile(join(publicPath, "index.html")); // Serve the normal site
+  } else {
+    res.send(`
+      <html>
+        <head>
+          <title>Password Protected</title>
+        </head>
+        <body>
+          <h1>Enter Password</h1>
+          <form method="POST" action="/">
+            <input type="password" name="password" placeholder="Enter password" />
+            <button type="submit">Submit</button>
+          </form>
+        </body>
+      </html>
+    `);
+  }
+});
+
+// Handle password submission
+app.post("/", (req, res) => {
+  const enteredPassword = req.body.password;
+  if (enteredPassword === PASSWORD) {
+    // Password correct, redirect to main page with "unlocked" query param
+    res.redirect("/?unlocked=true");
+  } else {
+    // Password incorrect, show the form again
+    res.send(`
+      <html>
+        <head>
+          <title>Password Protected</title>
+        </head>
+        <body>
+          <h1>Incorrect password, try again</h1>
+          <form method="POST" action="/">
+            <input type="password" name="password" placeholder="Enter password" />
+            <button type="submit">Submit</button>
+          </form>
+        </body>
+      </html>
+    `);
+  }
+});
 
 // Load our publicPath first and prioritize it over UV.
 app.use(express.static(publicPath));
@@ -46,8 +100,6 @@ if (isNaN(port)) port = 8080;
 server.on("listening", () => {
   const address = server.address();
 
-  // by default we are listening on 0.0.0.0 (every interface)
-  // we just need to list a few
   console.log("Listening on:");
   console.log(`\thttp://localhost:${address.port}`);
   console.log(`\thttp://${hostname()}:${address.port}`);
@@ -58,7 +110,7 @@ server.on("listening", () => {
   );
 });
 
-// https://expressjs.com/en/advanced/healthcheck-graceful-shutdown.html
+// Graceful shutdown
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
