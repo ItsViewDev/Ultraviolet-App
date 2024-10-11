@@ -1,5 +1,6 @@
 import { createBareServer } from "@tomphttp/bare-server-node";
 import express from "express";
+import session from "express-session";
 import { createServer } from "node:http";
 import { publicPath } from "ultraviolet-static";
 import { uvPath } from "@titaniumnetwork-dev/ultraviolet";
@@ -10,11 +11,30 @@ const bare = createBareServer("/bare/");
 const app = express();
 const correctPassword = "1234";
 
+// Set up session middleware
+app.use(
+  session({
+    secret: "your-secret-key", // Change this to a secure secret key
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false }, // Set to true if using HTTPS
+  })
+);
+
 // Parse form data
 app.use(express.urlencoded({ extended: true }));
 
-// Simple password screen
-app.get("/", (req, res) => {
+// Middleware to check if the user is authenticated
+function checkAuth(req, res, next) {
+  if (req.session.isAuthenticated) {
+    return next(); // User is authenticated, proceed to the next middleware
+  }
+  // If not authenticated, redirect to the password page
+  res.redirect("/login");
+}
+
+// Password login page
+app.get("/login", (req, res) => {
   res.send(`
     <html>
       <body>
@@ -28,35 +48,28 @@ app.get("/", (req, res) => {
   `);
 });
 
-// Check password
+// Check password and authenticate the user
 app.post("/check-password", (req, res) => {
   const { password } = req.body;
 
   if (password === correctPassword) {
-    res.send(`
-      <html>
-        <body>
-          <h2>Access Granted</h2>
-          <p>Welcome to the site!</p>
-        </body>
-      </html>
-    `);
+    req.session.isAuthenticated = true; // Set session authenticated
+    res.redirect("/"); // Redirect to the main site
   } else {
     res.send(`
       <html>
         <body>
           <h2>Incorrect Password</h2>
           <p>Try again.</p>
-          <a href="/">Go back</a>
+          <a href="/login">Go back</a>
         </body>
       </html>
     `);
   }
 });
 
-// Load our publicPath first and prioritize it over UV.
-app.use(express.static(publicPath));
-// Load vendor files last.
+// Main site content (protected by the password)
+app.use(checkAuth, express.static(publicPath));
 app.use("/uv/", express.static(uvPath));
 
 // Error for everything else
