@@ -6,7 +6,6 @@ import { uvPath } from "@titaniumnetwork-dev/ultraviolet";
 import { join } from "node:path";
 import { hostname } from "node:os";
 
-
 const bare = createBareServer("/bare/");
 const app = express();
 
@@ -50,12 +49,12 @@ server.on("listening", () => {
   // by default we are listening on 0.0.0.0 (every interface)
   // we just need to list a few
   console.log("Listening on:");
-  console.log(\thttp://localhost:${address.port});
-  console.log(\thttp://${hostname()}:${address.port});
+  console.log(`\thttp://localhost:${address.port}`);
+  console.log(`\thttp://${hostname()}:${address.port}`);
   console.log(
-    \thttp://${
-      address.family === "IPv6" ? [${address.address}] : address.address
-    }:${address.port}
+    `\thttp://${
+      address.family === "IPv6" ? `[${address.address}]` : address.address
+    }:${address.port}`
   );
 });
 
