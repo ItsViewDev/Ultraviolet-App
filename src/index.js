@@ -1,3 +1,5 @@
+npm install express-session
+
 import { createBareServer } from "@tomphttp/bare-server-node";
 import express from "express";
 import session from "express-session";
