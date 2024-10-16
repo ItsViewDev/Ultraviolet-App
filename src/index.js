@@ -14,7 +14,7 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Set a simple password
-const PASSWORD = "1234";
+const PASSWORD = "11323";
 
 // Serve the password input form
 app.get("/", (req, res) => {
