@@ -6,6 +6,7 @@ import { uvPath } from "@titaniumnetwork-dev/ultraviolet";
 import { join } from "node:path";
 import { hostname } from "node:os";
 import bodyParser from "body-parser";
+import session from "express-session";
 
 const bare = createBareServer("/bare/");
 const app = express();
@@ -13,12 +14,20 @@ const app = express();
 // Middleware to parse URL-encoded bodies (for form submissions)
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Use session middleware to store session data
+app.use(session({
+  secret: 'your-secret-key', // Change this to a strong secret in production
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false } // Set to true if using HTTPS
+}));
+
 // Set a simple password
-const PASSWORD = "11323";
+const PASSWORD = "1234";
 
 // Serve the password input form
 app.get("/", (req, res) => {
-  if (req.query.unlocked) {
+  if (req.session.unlocked) {
     res.sendFile(join(publicPath, "index.html")); // Serve the normal site
   } else {
     res.send(`
@@ -42,8 +51,9 @@ app.get("/", (req, res) => {
 app.post("/", (req, res) => {
   const enteredPassword = req.body.password;
   if (enteredPassword === PASSWORD) {
-    // Password correct, redirect to main page with "unlocked" query param
-    res.redirect("/?unlocked=true");
+    // Password correct, store session state
+    req.session.unlocked = true;
+    res.redirect("/");
   } else {
     // Password incorrect, show the form again
     res.send(`
