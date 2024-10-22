@@ -6,28 +6,19 @@ import { uvPath } from "@titaniumnetwork-dev/ultraviolet";
 import { join } from "node:path";
 import { hostname } from "node:os";
 import bodyParser from "body-parser";
-import session from "express-session";
 
 const bare = createBareServer("/bare/");
 const app = express();
 
-// MW
+// Middleware to parse URL-encoded bodies (for form submissions)
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// MW SESSION STORAGEE
-app.use(session({
-  secret: 'your-secret-key', // Change this to a strong secret in production
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false } // Set to true if using HTTPS
-}));
+// Set a simple password
+const PASSWORD = "1234";
 
-// lol
-const PASSWORD = "11323";
-
-// input
+// Serve the password input form
 app.get("/", (req, res) => {
-  if (req.session.unlocked) {
+  if (req.query.unlocked) {
     res.sendFile(join(publicPath, "index.html")); // Serve the normal site
   } else {
     res.send(`
@@ -51,9 +42,8 @@ app.get("/", (req, res) => {
 app.post("/", (req, res) => {
   const enteredPassword = req.body.password;
   if (enteredPassword === PASSWORD) {
-    // Password correct, store session state
-    req.session.unlocked = true;
-    res.redirect("/");
+    // Password correct, redirect to main page with "unlocked" query param
+    res.redirect("/?unlocked=true");
   } else {
     // Password incorrect, show the form again
     res.send(`
@@ -120,7 +110,7 @@ server.on("listening", () => {
   );
 });
 
-// Simple shutdown
+// Graceful shutdown
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
