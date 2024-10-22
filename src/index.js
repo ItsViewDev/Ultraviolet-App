@@ -11,10 +11,10 @@ import session from "express-session";
 const bare = createBareServer("/bare/");
 const app = express();
 
-// Middleware to parse URL-encoded bodies (for form submissions)
+// MW
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Use session middleware to store session data
+// MW SESSION STORAGEE
 app.use(session({
   secret: 'your-secret-key', // Change this to a strong secret in production
   resave: false,
@@ -22,10 +22,10 @@ app.use(session({
   cookie: { secure: false } // Set to true if using HTTPS
 }));
 
-// Set a simple password
-const PASSWORD = "1234";
+// lol
+const PASSWORD = "11323";
 
-// Serve the password input form
+// input
 app.get("/", (req, res) => {
   if (req.session.unlocked) {
     res.sendFile(join(publicPath, "index.html")); // Serve the normal site
@@ -120,7 +120,7 @@ server.on("listening", () => {
   );
 });
 
-// Graceful shutdown
+// Simple shutdown
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
